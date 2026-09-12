@@ -21,6 +21,8 @@ gw -Task "Implement only the accepted change described below..." -WorkingDirecto
 
 The wrapper pins `gemini-3.8-flash-high`, uses bounded headless execution, and requires structured output. Do not substitute a direct `agy` call, another worker/model, or a different execution mechanism unless the user explicitly changes this protocol.
 
+For two or more tightly related turns in one bounded feature or bug, use `gws` (`gemini-worker-session.ps1`) from a persistent terminal. It keeps one `agy --input-format stream-json` process warm and exchanges JSONL requests/results. Send exactly one Lead brief, wait for its terminal `worker_result`, then let the Lead decide whether to send an explicit follow-up. End the session after 3–5 turns, when the feature/branch changes, on any failure, or after a terminal `DONE` that needs no follow-up. Do not use it to let Gemini and the Lead chat freely or to run concurrent writers in the same worktree.
+
 ## Lead control loop
 
 1. Inspect the worker report and any logs. `NEED_LEAD`, malformed output, a partial result, or any failure is not success.

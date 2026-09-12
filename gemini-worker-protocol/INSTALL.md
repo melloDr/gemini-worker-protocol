@@ -38,11 +38,14 @@ Unblock-File -Path .\scripts\*.ps1
 .\scripts\Install-GeminiWorkerSkill.ps1 -InstallWorker -AddGwToProfile -AddScriptsToUserPath
 ```
 
+For an upgrade from an older package version, add `-Force` so the installer also replaces the worker scripts and updates the existing profile block with the `gws` streaming function.
+
 The installer writes only for the current user:
 
 - the skill to `C:\Users\<USER>\.codex\skills\gemini-worker-protocol` (or `$env:CODEX_HOME\skills\gemini-worker-protocol` when `CODEX_HOME` is set);
 - the global wrapper to `C:\Users\<USER>\Scripts\gemini-worker.ps1`;
-- an opt-in `gw` PowerShell function to the current user's all-hosts profile;
+- the streaming bridge to `C:\Users\<USER>\Scripts\gemini-worker-session.ps1`;
+- opt-in `gw` and `gws` PowerShell functions to the current user's all-hosts profile;
 - optionally, `C:\Users\<USER>\Scripts` to the user `PATH`.
 
 It refuses to overwrite an existing target. If and only if you want this package to replace the prior version, rerun with `-Force`. To preview filesystem/profile changes without writing them, add `-WhatIf`.
@@ -56,6 +59,22 @@ gw -Task "No work is authorized. Return NEED_LEAD and state why." -WorkingDirect
 
 The second command is a protocol smoke test. It should return `STATUS: NEED_LEAD`; it must not change files.
 
+### Use a warm streaming session for related turns
+
+Use `gws` only from a persistent PowerShell terminal. It launches one Gemini process using Antigravity's `stream-json` protocol, then reads one JSON object per line from that terminal. Keep the terminal open; the Lead sends the next turn only after the previous `worker_result` arrives.
+
+```powershell
+gws -WorkingDirectory (Get-Location)
+```
+
+Paste/send this as the first line, then wait for its terminal `worker_result`:
+
+```json
+{"action":"delegate","task":"Task: Update only src/parser.ts to reject empty identifiers. Scope: Read src/parser.ts and its existing parser tests only. Test: Run npm test -- parser. Completion: Return DONE only if the test passes."}
+```
+
+For an authorized follow-up in the same feature, send another `delegate` line. To end the warm process, send `{"action":"stop"}` or close the terminal stdin. Do not use more than one writer session in a worktree, do not interleave requests, and reset the session after 3–5 turns or any scope/branch change.
+
 ### Manual setup (if the installer is not used)
 
 ```powershell
@@ -65,7 +84,9 @@ New-Item -ItemType Directory -Force -Path (Join-Path $codexRoot 'skills') | Out-
 Copy-Item -Recurse $package (Join-Path $codexRoot 'skills\gemini-worker-protocol')
 New-Item -ItemType Directory -Force -Path (Join-Path $HOME 'Scripts') | Out-Null
 Copy-Item .\scripts\gemini-worker.ps1 (Join-Path $HOME 'Scripts\gemini-worker.ps1')
+Copy-Item .\scripts\gemini-worker-session.ps1 (Join-Path $HOME 'Scripts\gemini-worker-session.ps1')
 function global:gw { & (Join-Path $HOME 'Scripts\gemini-worker.ps1') @args }
+function global:gws { & (Join-Path $HOME 'Scripts\gemini-worker-session.ps1') @args }
 ```
 
 To persist the final `gw` function, add it to `$PROFILE.CurrentUserAllHosts`, then open a new PowerShell session. Add `$HOME\Scripts` to the user `PATH` only if you also want to call the script by path/name outside `gw`.

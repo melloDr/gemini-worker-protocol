@@ -33,6 +33,12 @@ CURRENT_STATE: <what was inspected and whether any files changed>
 
 On successful completion it must return `DONE` with task completed, files read and changed, commands run, test results, assumptions, and remaining issues. A wrapper-enforced JSON schema carries these fields; an empty list or `Not run` is acceptable only when truthfully reported.
 
+## Streaming session mode
+
+Use `gws` only when the Lead needs two or more tightly related turns in one bounded feature or bug and can keep one terminal process open. It holds a single Gemini conversation in memory, reducing startup latency and preserving the worker context. It does not create a direct autonomous channel between Gemini and Codex: the Lead still explicitly sends every JSONL `delegate` message and independently reviews each terminal result.
+
+Send one brief at a time, wait for the terminal `worker_result`, then decide whether a specific follow-up is authorized. Keep at most one writer session per worktree. Close the session after 3–5 turns, on `DONE` with no rework, on any failure, or whenever the feature/branch/scope changes. Do not reuse a session across unrelated tasks, and do not pipe free-form model conversation through it.
+
 ## Failures, partial work, and interruption
 
 Treat every non-success result as unaccepted until the Lead reviews it. Report the failure kind, relevant error/log location, whether files may have changed, and the next safe user/Lead action. Cover at least:

@@ -20,6 +20,8 @@ $skillRoot = Join-Path $CodexHome 'skills'
 $targetSkill = Join-Path $skillRoot $skillName
 $workerSource = Join-Path $PSScriptRoot 'gemini-worker.ps1'
 $workerTarget = Join-Path $ScriptsDirectory 'gemini-worker.ps1'
+$sessionSource = Join-Path $PSScriptRoot 'gemini-worker-session.ps1'
+$sessionTarget = Join-Path $ScriptsDirectory 'gemini-worker-session.ps1'
 
 $sourceResolved = (Resolve-Path -LiteralPath $packageRoot).Path
 $targetResolved = if (Test-Path -LiteralPath $targetSkill) { (Resolve-Path -LiteralPath $targetSkill).Path } else { $null }
@@ -39,13 +41,17 @@ else {
 }
 
 if ($InstallWorker) {
-    if (Test-Path -LiteralPath $workerTarget) {
-        if (-not $Force) { throw "Worker script already exists: $workerTarget. Use -Force only to replace it." }
+    foreach ($target in @($workerTarget, $sessionTarget)) {
+        if ((Test-Path -LiteralPath $target) -and -not $Force) {
+            throw "Worker script already exists: $target. Use -Force only to replace it."
+        }
     }
-    if ($PSCmdlet.ShouldProcess($workerTarget, 'install Gemini worker wrapper')) {
+    if ($PSCmdlet.ShouldProcess($ScriptsDirectory, 'install Gemini worker wrappers')) {
         New-Item -ItemType Directory -Force -Path $ScriptsDirectory | Out-Null
         Copy-Item -LiteralPath $workerSource -Destination $workerTarget -Force
-        Write-Output "Installed worker wrapper: $workerTarget"
+        Copy-Item -LiteralPath $sessionSource -Destination $sessionTarget -Force
+        Write-Output "Installed one-shot worker wrapper: $workerTarget"
+        Write-Output "Installed streaming worker bridge: $sessionTarget"
     }
 }
 
@@ -60,26 +66,36 @@ if ($AddScriptsToUserPath) {
 }
 
 if ($AddGwToProfile) {
-    if (-not (Test-Path -LiteralPath $workerTarget)) { throw 'Install the worker first: rerun with -InstallWorker -AddGwToProfile.' }
+    if (-not (Test-Path -LiteralPath $workerTarget) -or -not (Test-Path -LiteralPath $sessionTarget)) { throw 'Install the worker wrappers first: rerun with -InstallWorker -AddGwToProfile.' }
     $profilePath = $PROFILE.CurrentUserAllHosts
     $profileDirectory = Split-Path -Parent $profilePath
     $startMarker = '# >>> gemini-worker-protocol >>>'
     $endMarker = '# <<< gemini-worker-protocol <<<'
     $escapedWorkerTarget = $workerTarget.Replace("'", "''")
+    $escapedSessionTarget = $sessionTarget.Replace("'", "''")
     $profileBlock = @"
 $startMarker
 function global:gw { & '$escapedWorkerTarget' @args }
+function global:gws { & '$escapedSessionTarget' @args }
 $endMarker
 "@
     $existingProfile = if (Test-Path -LiteralPath $profilePath) { Get-Content -LiteralPath $profilePath -Raw } else { '' }
-    if ($existingProfile -notmatch [regex]::Escape($startMarker) -and $PSCmdlet.ShouldProcess($profilePath, 'add the gw function')) {
+    if ($existingProfile -notmatch [regex]::Escape($startMarker) -and $PSCmdlet.ShouldProcess($profilePath, 'add gw and gws functions')) {
         New-Item -ItemType Directory -Force -Path $profileDirectory | Out-Null
         Add-Content -LiteralPath $profilePath -Value "`n$profileBlock" -Encoding utf8
-        Write-Output "Added gw function to profile: $profilePath"
+        Write-Output "Added gw and gws functions to profile: $profilePath"
+    }
+    elseif ($existingProfile -match [regex]::Escape($startMarker) -and $Force) {
+        $profilePattern = '(?ms)^# >>> gemini-worker-protocol >>>.*?^# <<< gemini-worker-protocol <<<\s*'
+        if ($PSCmdlet.ShouldProcess($profilePath, 'update gw and gws functions')) {
+            $updatedProfile = [regex]::Replace($existingProfile, $profilePattern, "$profileBlock`n")
+            Set-Content -LiteralPath $profilePath -Value $updatedProfile -Encoding utf8
+            Write-Output "Updated gw and gws functions in profile: $profilePath"
+        }
     }
     elseif ($existingProfile -match [regex]::Escape($startMarker)) {
-        Write-Output "The gw profile function already exists: $profilePath"
+        Write-Output "The profile already has a gemini-worker-protocol block. Rerun with -Force to add gws."
     }
 }
 
-Write-Output 'Open a new PowerShell window after profile or PATH changes, then run: gw -Task "Return NEED_LEAD and explain what is missing."'
+Write-Output 'Open a new PowerShell window after profile or PATH changes. Use gw for one turn and gws for a persistent streaming session.'

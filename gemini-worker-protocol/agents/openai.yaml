@@ -1,0 +1,7 @@
+interface:
+  display_name: "Gemini Worker Protocol"
+  short_description: "Bounded Gemini execution worker"
+  default_prompt: "Use $gemini-worker-protocol to delegate a bounded implementation task to Gemini."
+
+policy:
+  allow_implicit_invocation: true

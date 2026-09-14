@@ -1,5 +1,27 @@
 # Install on Windows
 
+## npm one-command installer
+
+After installing Node.js 18+, installing and authenticating Antigravity CLI, run:
+
+```powershell
+npx gemini-worker-protocol
+```
+
+The npm command calls this package's PowerShell installer for the current Windows user. It installs the global Codex skill, the `gw`/`gws` wrappers, their Scripts directory in User PATH, and the PowerShell profile functions. It does not install `agy` or log in to Gemini. Open a new PowerShell window after it completes.
+
+Use these only when needed:
+
+```powershell
+# Preview the command without changing your machine.
+npx gemini-worker-protocol --dry-run
+
+# Replace a previous installation of this same protocol.
+npx gemini-worker-protocol --force
+```
+
+For a machine without npm, use the portable installation below.
+
 This package is portable: copy the entire `gemini-worker-protocol` folder to the new machine before installing. Do not copy only `SKILL.md`; the wrapper, schema, policy reference, and installer are all part of the package.
 
 ## 1. Install and authenticate Antigravity CLI
@@ -61,7 +83,7 @@ The second command is a protocol smoke test. It should return `STATUS: NEED_LEAD
 
 ### Use a warm streaming session for related turns
 
-Use `gws` only from a persistent PowerShell terminal. It launches one Gemini process using Antigravity's `stream-json` protocol, then reads one JSON object per line from that terminal. Keep the terminal open; the Lead sends the next turn only after the previous `worker_result` arrives.
+Use `gws` only from a persistent PowerShell terminal. It launches one Gemini process using Antigravity's `stream-json` protocol, then reads one JSON object per line from that terminal. Keep the terminal open; the Lead sends the next turn only after the previous `worker_result` arrives. The bridge emits compact progress events rather than raw tool output, and it enforces a five-turn session limit by default.
 
 ```powershell
 gws -WorkingDirectory (Get-Location)
@@ -124,6 +146,7 @@ The package contains no credentials, API keys, cached sessions, or project files
 | 0 | Gemini returned a structured `DONE` report; Lead review is still required. |
 | 2 | Gemini returned `NEED_LEAD`; clarify and explicitly authorize another bounded run. |
 | 3 | Gemini returned `FAILED`; inspect logs/worktree. |
+| 4 | The streaming session reached its turn limit; review and start a new session. |
 | 10–12 | Wrapper preflight or wrapper error. |
 | 20–23 | `agy` failure, non-success envelope, or malformed output. |
 

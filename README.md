@@ -37,6 +37,20 @@ Gemini cannot commit, push, merge, deploy, publish, change credentials, or alter
 
 ## Quick start (Windows)
 
+### One-command npm install
+
+After installing Node.js 18+ and authenticating `agy`, run:
+
+```powershell
+npx gemini-worker-protocol
+```
+
+It installs the global Codex skill, the `gw`/`gws` PowerShell wrappers, adds their Scripts directory to the current user's `PATH`, and adds both functions to the current-user PowerShell profile. Open a new PowerShell window afterwards. For a deliberate upgrade, use `npx gemini-worker-protocol --force`; preview the exact PowerShell command first with `npx gemini-worker-protocol --dry-run`.
+
+This installer is Windows-only and changes only the current user's Codex folder, Scripts folder, PATH, and profile. It does not install Antigravity or log in to Gemini: complete the first prerequisite below first.
+
+### Portable install
+
 1. Install and authenticate the Antigravity CLI, then confirm the required model:
 
    ```powershell

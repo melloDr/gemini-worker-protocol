@@ -79,7 +79,7 @@ Then send one JSON line at a time through the same terminal:
 {"action":"delegate","task":"Inspect only the failing parser test and return NEED_LEAD if the expected behavior is ambiguous."}
 ```
 
-Wait for a terminal `worker_result` before sending the next line. End the session with `{"action":"stop"}`. The session is a transport optimization, not autonomous model-to-model chat: the selected Codex model remains Lead and authorizes every turn. Use a maximum of 3–5 related turns, one writer session per worktree, and reset after a scope or branch change.
+Wait for a terminal `worker_result` before sending the next line. End the session with `{"action":"stop"}`. The session is a transport optimization, not autonomous model-to-model chat: the selected Codex model remains Lead and authorizes every turn. It emits compact progress events rather than raw tool output and enforces five related turns by default; then it requires a reset. Use one writer session per worktree and reset after a scope or branch change.
 
 ## Project opt-in
 

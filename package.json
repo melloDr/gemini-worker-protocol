@@ -1,0 +1,41 @@
+{
+  "name": "gemini-worker-protocol",
+  "version": "1.0.0",
+  "description": "Install the Gemini execution-worker protocol for Codex Desktop on Windows.",
+  "bin": {
+    "gemini-worker-protocol": "bin/gemini-worker-protocol.js"
+  },
+  "files": [
+    "bin/",
+    "gemini-worker-protocol/",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "win32"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/melloDr/gemini-worker-protocol.git"
+  },
+  "bugs": {
+    "url": "https://github.com/melloDr/gemini-worker-protocol/issues"
+  },
+  "homepage": "https://github.com/melloDr/gemini-worker-protocol#readme",
+  "keywords": [
+    "codex",
+    "gemini",
+    "antigravity",
+    "agent",
+    "windows"
+  ],
+  "license": "UNLICENSED"
+}

@@ -9,7 +9,10 @@ param(
     [string]$WorkingDirectory = (Get-Location).Path,
 
     [ValidateRange(1, 60)]
-    [int]$TimeoutMinutes = 15
+    [int]$TimeoutMinutes = 15,
+
+    [ValidateRange(1, 20)]
+    [int]$MaxTurns = 5
 )
 
 Set-StrictMode -Version Latest
@@ -50,6 +53,12 @@ $logDirectory = Join-Path ([System.IO.Path]::GetTempPath()) $sessionId
 New-Item -ItemType Directory -Force -Path $logDirectory | Out-Null
 $schemaPath = Join-Path $logDirectory 'report-schema.json'
 $transcriptPath = Join-Path $logDirectory 'stream.ndjson'
+$transcriptWriter = New-Object System.IO.StreamWriter($transcriptPath, $false, (New-Object System.Text.UTF8Encoding($false)))
+
+function Write-TranscriptLine {
+    param([Parameter(Mandatory)][string]$Line)
+    $transcriptWriter.WriteLine($Line)
+}
 
 $schema = @'
 {
@@ -87,12 +96,15 @@ $process = New-Object System.Diagnostics.Process
 $process.StartInfo = $startInfo
 
 if (-not $process.Start()) {
+    $transcriptWriter.Dispose()
     Write-SessionJson @{ event = 'failure'; kind = 'CLI_ERROR'; message = 'Unable to start agy.'; log_directory = $logDirectory }
     $global:LASTEXITCODE = 12
     return
 }
 
 $turn = 0
+$sessionExitCode = 0
+$shouldStop = $false
 $sessionReady = @{ event = 'session_ready'; session_id = $sessionId; model = $model; log_directory = $logDirectory; protocol = 'Send JSONL: {"action":"delegate","task":"<explicit Lead brief>"}; wait for worker_result before another turn.' }
 Write-SessionJson $sessionReady
 
@@ -123,6 +135,12 @@ try {
         }
         if ($process.HasExited) {
             Write-SessionJson @{ event = 'failure'; kind = 'INTERRUPTED'; message = "agy exited with code $($process.ExitCode)."; session_id = $sessionId; log_directory = $logDirectory }
+            $sessionExitCode = 20
+            break
+        }
+        if ($turn -ge $MaxTurns) {
+            Write-SessionJson @{ event = 'failure'; kind = 'SESSION_RESET_REQUIRED'; message = "This session reached its $MaxTurns-turn limit. Review the worktree and start a new session before continuing."; session_id = $sessionId; log_directory = $logDirectory }
+            $sessionExitCode = 4
             break
         }
 
@@ -155,7 +173,7 @@ Lead follow-up ends.
         $agyMessage = @{ event = 'user'; message = @{ content = $content } } | ConvertTo-Json -Depth 8 -Compress
         $process.StandardInput.WriteLine($agyMessage)
         $process.StandardInput.Flush()
-        Add-Content -LiteralPath $transcriptPath -Value $agyMessage -Encoding utf8
+        Write-TranscriptLine $agyMessage
 
         $receivedResult = $false
         while (-not $receivedResult) {
@@ -163,35 +181,47 @@ Lead follow-up ends.
             if ($null -eq $eventLine) {
                 $exitCode = if ($process.HasExited) { $process.ExitCode } else { -1 }
                 Write-SessionJson @{ event = 'failure'; kind = 'INTERRUPTED'; message = "agy ended before a terminal result (exit code $exitCode)."; session_id = $sessionId; log_directory = $logDirectory }
-                break 2
+                $sessionExitCode = 20
+                $shouldStop = $true
+                break
             }
-            Add-Content -LiteralPath $transcriptPath -Value $eventLine -Encoding utf8
             try {
                 $event = $eventLine | ConvertFrom-Json -ErrorAction Stop
             }
             catch {
                 Write-SessionJson @{ event = 'failure'; kind = 'MALFORMED_OUTPUT'; message = 'agy emitted a non-JSON stream event.'; session_id = $sessionId; log_directory = $logDirectory }
-                break 2
+                $sessionExitCode = 21
+                $shouldStop = $true
+                break
             }
 
             if ($event.event -eq 'result') {
                 $receivedResult = $true
+                Write-TranscriptLine $eventLine
                 $result = $event.result
                 if ($result.status -ne 'SUCCESS') {
                     $kind = Get-FailureKind -Text ([string]$result.error)
                     Write-SessionJson @{ event = 'failure'; kind = $kind; message = [string]$result.error; session_id = $sessionId; log_directory = $logDirectory }
-                    break 2
+                    $sessionExitCode = 20
+                    $shouldStop = $true
+                    break
                 }
                 if ($null -eq $result.structured_output -or $result.structured_output.status -notin @('DONE', 'NEED_LEAD', 'FAILED')) {
                     Write-SessionJson @{ event = 'failure'; kind = 'MALFORMED_OUTPUT'; message = 'The terminal result lacks a valid structured worker report.'; session_id = $sessionId; log_directory = $logDirectory }
-                    break 2
+                    $sessionExitCode = 21
+                    $shouldStop = $true
+                    break
                 }
                 Write-SessionJson @{ event = 'worker_result'; session_id = $sessionId; turn = $turn; report = $result.structured_output; log_directory = $logDirectory }
             }
             else {
-                Write-SessionJson @{ event = 'worker_event'; session_id = $sessionId; turn = $turn; payload = $event }
+                $step = $event.PSObject.Properties['step_update']
+                $stepType = if ($null -ne $step -and $null -ne $step.Value.PSObject.Properties['step_type']) { [string]$step.Value.step_type } else { [string]$event.event }
+                $state = if ($null -ne $step -and $null -ne $step.Value.PSObject.Properties['state']) { [string]$step.Value.state } else { '' }
+                Write-SessionJson @{ event = 'worker_progress'; session_id = $sessionId; turn = $turn; step_type = $stepType; state = $state }
             }
         }
+        if ($shouldStop) { break }
     }
 }
 finally {
@@ -199,7 +229,8 @@ finally {
         $process.StandardInput.Close()
         if (-not $process.WaitForExit(5000)) { $process.Kill() }
     }
+    $transcriptWriter.Dispose()
     $process.Dispose()
 }
 
-$global:LASTEXITCODE = 0
+$global:LASTEXITCODE = $sessionExitCode

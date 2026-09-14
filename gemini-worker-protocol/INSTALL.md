@@ -2,19 +2,13 @@
 
 ## npm one-command installer
 
-After installing Node.js 18+, installing and authenticating Antigravity CLI, install the current GitHub version now with:
-
-```powershell
-npx --yes github:melloDr/gemini-worker-protocol
-```
-
-After the package is published to npm, the shorter equivalent will be:
+After installing Node.js 18+, installing and authenticating Antigravity CLI, run:
 
 ```powershell
 npx gemini-worker-protocol
 ```
 
-Both commands call this package's PowerShell installer for the current Windows user. They install the global Codex skill, the `gw`/`gws` wrappers, their Scripts directory in User PATH, and the PowerShell profile functions. They do not install `agy` or log in to Gemini. Open a new PowerShell window after they complete.
+The command calls this package's PowerShell installer for the current Windows user. It installs the global Codex skill, the `gw`/`gws` wrappers, their Scripts directory in User PATH, and the PowerShell profile functions. It does not install `agy` or log in to Gemini. Open a new PowerShell window after it completes.
 
 Use these only when needed:
 
@@ -27,6 +21,16 @@ npx gemini-worker-protocol --force
 ```
 
 For a machine without npm, use the portable installation below.
+
+## Project-only setup
+
+After the one-time installation above, open PowerShell at the root of a project and run:
+
+```powershell
+npx gemini-worker-protocol init --project .
+```
+
+This creates the project-local skill at `.agents\skills\gemini-worker-protocol`, appends the project opt-in policy to `AGENTS.md`, and disables the global copy of this skill. It never overwrites an existing project skill unless you explicitly pass `--force`. Restart Codex, then open the project.
 
 This package is portable: copy the entire `gemini-worker-protocol` folder to the new machine before installing. Do not copy only `SKILL.md`; the wrapper, schema, policy reference, and installer are all part of the package.
 

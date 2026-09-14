@@ -1,8 +1,3 @@
-# Per-project opt-in snippet
-
-Add this only to a project that the user wants to allow Gemini delegation. It does not install the global skill or wrapper.
-
-```md
 ## External execution worker
 
 This project may use the `gemini-worker-protocol` skill.
@@ -17,4 +12,3 @@ a decision is required. It must never silently fall back to another model or the
 Lead. The Lead reviews the diff and tests before accepting any `DONE` report.
 No commit, push, merge, deploy, or other external/release action is allowed
 without the user's explicit authorization.
-```

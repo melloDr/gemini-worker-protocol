@@ -39,19 +39,13 @@ Gemini cannot commit, push, merge, deploy, publish, change credentials, or alter
 
 ### One-command npm install
 
-After installing Node.js 18+ and authenticating `agy`, install the current GitHub version now with:
-
-```powershell
-npx --yes github:melloDr/gemini-worker-protocol
-```
-
-After the public npm package is published, the shorter equivalent will be:
+After installing Node.js 18+ and authenticating `agy`, run:
 
 ```powershell
 npx gemini-worker-protocol
 ```
 
-Both forms install the global Codex skill, the `gw`/`gws` PowerShell wrappers, add their Scripts directory to the current user's `PATH`, and add both functions to the current-user PowerShell profile. Open a new PowerShell window afterwards. For a deliberate upgrade, append `--force`; preview the exact PowerShell command first by appending `--dry-run`.
+It installs the global Codex skill, the `gw`/`gws` PowerShell wrappers, adds their Scripts directory to the current user's `PATH`, and adds both functions to the current-user PowerShell profile. Open a new PowerShell window afterwards. For a deliberate upgrade, append `--force`; preview the exact PowerShell command first by appending `--dry-run`.
 
 This installer is Windows-only and changes only the current user's Codex folder, Scripts folder, PATH, and profile. It does not install Antigravity or log in to Gemini: complete the first prerequisite below first.
 
@@ -103,7 +97,13 @@ Wait for a terminal `worker_result` before sending the next line. End the sessio
 
 ## Project opt-in
 
-The skill is installed globally once, but repositories opt in individually. Add the contents of [references/AGENTS.md.snippet.md](references/AGENTS.md.snippet.md) to a project's `AGENTS.md` only when Gemini delegation is desired for that project.
+To use the skill in one repository only, open PowerShell in that repository and run:
+
+```powershell
+npx gemini-worker-protocol init --project .
+```
+
+This creates `.agents/skills/gemini-worker-protocol`, appends the opt-in policy to `AGENTS.md` without overwriting existing instructions, and disables the global copy of this skill. Restart Codex, then open that project. It refuses to replace an existing project copy unless you explicitly append `--force`.
 
 ## Expected workflow
 

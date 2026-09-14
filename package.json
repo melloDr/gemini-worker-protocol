@@ -1,6 +1,6 @@
 {
   "name": "gemini-worker-protocol",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Install the Gemini execution-worker protocol for Codex Desktop on Windows.",
   "bin": {
     "gemini-worker-protocol": "bin/gemini-worker-protocol.js"

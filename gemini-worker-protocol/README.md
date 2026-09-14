@@ -83,7 +83,13 @@ Wait for a terminal `worker_result` before sending the next line. End the sessio
 
 ## Project opt-in
 
-The skill is installed globally once, but repositories opt in individually. Add the contents of [references/AGENTS.md.snippet.md](references/AGENTS.md.snippet.md) to a project's `AGENTS.md` only when Gemini delegation is desired for that project.
+For a project-only setup, open PowerShell in the project and run:
+
+```powershell
+npx gemini-worker-protocol init --project .
+```
+
+It creates `.agents/skills/gemini-worker-protocol`, adds this project's opt-in policy to `AGENTS.md` without overwriting existing instructions, and disables the global copy of this skill. Restart Codex, then open the project. It refuses to replace an existing project copy unless you explicitly append `--force`.
 
 ## Expected workflow
 

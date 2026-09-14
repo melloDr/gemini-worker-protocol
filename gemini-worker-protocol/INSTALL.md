@@ -2,13 +2,19 @@
 
 ## npm one-command installer
 
-After installing Node.js 18+, installing and authenticating Antigravity CLI, run:
+After installing Node.js 18+, installing and authenticating Antigravity CLI, install the current GitHub version now with:
+
+```powershell
+npx --yes github:melloDr/gemini-worker-protocol
+```
+
+After the package is published to npm, the shorter equivalent will be:
 
 ```powershell
 npx gemini-worker-protocol
 ```
 
-The npm command calls this package's PowerShell installer for the current Windows user. It installs the global Codex skill, the `gw`/`gws` wrappers, their Scripts directory in User PATH, and the PowerShell profile functions. It does not install `agy` or log in to Gemini. Open a new PowerShell window after it completes.
+Both commands call this package's PowerShell installer for the current Windows user. They install the global Codex skill, the `gw`/`gws` wrappers, their Scripts directory in User PATH, and the PowerShell profile functions. They do not install `agy` or log in to Gemini. Open a new PowerShell window after they complete.
 
 Use these only when needed:
 
